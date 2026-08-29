@@ -2,20 +2,32 @@
 
 A local, private AI articulation coach designed to help users improve their spoken English fluency, confidence, and spontaneity.
 
-## 🚀 System Overview
-Articulate AI provides a seamless voice-to-voice loop using locally hosted models to ensure privacy and low latency.
+## 🚀 The Crux of the Project
+Articulate AI implements a fully local **Voice-to-Voice (V2V) loop**. It captures raw audio, converts it to text, processes it through a conversational AI, and speaks the response back to the user—all without sending data to the cloud.
 
-- **Speech-to-Text (STT)**: `faster-whisper` (small model) for accurate English transcription.
-- **LLM**: `Ollama` (`qwen2.5:7b`) acting as a conversational partner and coach.
-- **Text-to-Speech (TTS)**: `Piper` for fast, natural-sounding local voice synthesis.
-- **Backend**: `FastAPI` + `Uvicorn`.
-- **Frontend**: Minimalist, single-page HTML/JS interface.
+### 🧠 Backend Architecture
+The backend is a **FastAPI** server that manages three specialized AI pipelines:
+1. **Audio Capture $\rightarrow$ STT**:
+   - Captures audio at **44.1kHz** $\rightarrow$ Resamples to **16kHz**.
+   - Uses **`faster-whisper` (Medium)** for high-accuracy, local speech-to-text transcription.
+2. **Cognition (LLM)**:
+   - Uses **`Ollama` (`phi3`)** as the articulation coach.
+   - Maintains a short-term conversation memory to keep the context of the practice session.
+3. **TTS $\rightarrow$ Audio Output**:
+   - Uses **`Piper`** (ONNX runtime) for ultra-fast, low-latency local text-to-speech synthesis.
+   - Outputs high-quality `.wav` files played directly in the browser.
+
+### 🎨 Frontend Architecture
+The frontend is a **single-file embedded HTML/JS** interface designed for zero-latency interaction:
+- **Reactive UI**: Uses a pulse-animation recording button to indicate active listening.
+- **Asynchronous Flow**: Leverages the `Fetch API` to trigger recording start/stop and retrieve AI responses without page reloads.
+- **Real-time Feedback**: Displays a live transcript of "What I heard" and a conversation history log.
 
 ## 🛠️ Installation & Setup
 
 ### Prerequisites
 - **Python 3.12**
-- **Ollama**: Installed and running with `qwen2.5:7b` pulled.
+- **Ollama**: Installed and running with `phi3` pulled.
 - **Piper**: Executable and model files (`.onnx` and `.json`) must be in the root directory.
 
 ### Quick Start
@@ -33,17 +45,16 @@ Articulate AI provides a seamless voice-to-voice loop using locally hosted model
 4. **Access the UI**: Open `http://127.0.0.1:8000` in your browser.
 
 ## ⚙️ Configuration
-- **Microphone**: If the app cannot detect your microphone, update `MICROPHONE_DEVICE` in `app.py`.
-- **Audio Flow**:
-    - Native Recording: 44.1kHz
-    - Whisper Processing: 16kHz (automatically resampled)
-    - Output: Saved to `articulate_audio/` folder.
+- **Microphone**: Uses system default device.
+- **Audio Flow**: 
+  - Root storage for audio: `articulate_audio/`
+  - Only keeps the current `recording_16000.wav` and `ai_response.wav` to avoid disk clutter.
 
 ## 📝 Project Structure
-- `app.py`: Main application logic, API endpoints, and embedded HTML frontend.
-- `articulate_audio/`: Storage for temporary recording and response files.
-- `AGENTS.md`: Developer-specific instructions for AI agents.
-- `.gitignore`: Configured to exclude large model files and virtual environments.
+- `app.py`: Core engine (Backend + Embedded Frontend).
+- `articulate_audio/`: Temporary audio workspace.
+- `AGENTS.md`: AI agent guidance.
+- `requirements.txt`: Project dependencies.
 
 ## ⚖️ License
 Local use only.
