@@ -77,7 +77,7 @@ print()
 print("=" * 60)
 print("ARTICULATE AI")
 print("=" * 60)
-print("Loading Whisper Small...")
+print("Loading Whisper medium...")
 
 whisper = WhisperModel(
     WHISPER_MODEL,
