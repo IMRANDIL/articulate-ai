@@ -24,8 +24,8 @@ import uvicorn
 # CONFIGURATION
 # ============================================================
 
-WHISPER_MODEL = "small"
-OLLAMA_MODEL = "qwen2.5:7b"
+WHISPER_MODEL = "medium"
+OLLAMA_MODEL = "phi3"
 PIPER_MODEL = "en_US-lessac-medium.onnx"
 
 # Use None for default device to allow sounddevice to pick the system default
@@ -218,76 +218,36 @@ conversation = []
 # ============================================================
 
 def transcribe_audio(audio):
+    # Just save the raw audio to check if it's working
+    native_path = OUTPUT_DIR / "recording_44100.wav"
+    audio_int16 = (audio * 32767).astype(np.int16)
+    write(str(native_path), NATIVE_SAMPLE_RATE, audio_int16)
 
-    native_path = (
-        OUTPUT_DIR /
-        "recording_44100.wav"
-    )
-
-    audio_int16 = np.clip(
-        audio * 32767,
-        -32768,
-        32767,
-    ).astype(np.int16)
-
-    write(
-        str(native_path),
-        NATIVE_SAMPLE_RATE,
-        audio_int16,
-    )
-
-    print("🔄 Converting audio...")
-
-    # If audio is mono, it will be (N,), if stereo (N, 2)
-    if audio.ndim > 1:
-        mono = audio[:, 0]
-    else:
-        mono = audio
-
-    resampled = resample_poly(
-        mono,
-        WHISPER_SAMPLE_RATE,
-        NATIVE_SAMPLE_RATE,
-    )
-
-    resampled_int16 = np.clip(
-        resampled * 32767,
-        -32768,
-        32767,
-    ).astype(np.int16)
-
-    whisper_path = (
-        OUTPUT_DIR /
-        "recording_16000.wav"
-    )
-
-    write(
-        str(whisper_path),
-        WHISPER_SAMPLE_RATE,
-        resampled_int16,
-    )
+    # SIMPLIFIED PIPELINE: Remove all complex filters
+    mono = audio[:, 0] if audio.ndim > 1 else audio
+    
+    # Basic Resample
+    resampled = resample_poly(mono, WHISPER_SAMPLE_RATE, NATIVE_SAMPLE_RATE)
+    resampled_int16 = (resampled * 32767).astype(np.int16)
+    
+    whisper_path = OUTPUT_DIR / "recording_16000.wav"
+    write(str(whisper_path), WHISPER_SAMPLE_RATE, resampled_int16)
 
     print("🧠 Whisper transcribing...")
-
     segments, info = whisper.transcribe(
         str(whisper_path),
         language="en",
-        beam_size=5,
+        beam_size=1,
         temperature=0,
-        condition_on_previous_text=False,
-        vad_filter=True,
+        vad_filter=False,
     )
-
-    text = " ".join(
-        segment.text.strip()
-        for segment in segments
-    ).strip()
-
+    text = " ".join(segment.text.strip() for segment in segments).strip()
+    
     print()
     print("📝 YOU SAID:")
     print(text)
     print()
-
+    
     return text
 
 
@@ -340,12 +300,12 @@ def ask_qwen(user_text):
 # ============================================================
 
 def generate_speech(text):
-
+    
     filename = (
         OUTPUT_DIR /
-        f"{uuid.uuid4()}.wav"
+        "ai_response.wav"
     )
-
+    
     result = subprocess.run(
         [
             "piper",
@@ -358,14 +318,14 @@ def generate_speech(text):
         text=True,
         capture_output=True,
     )
-
+    
     if result.returncode != 0:
-
         raise RuntimeError(
             result.stderr
         )
-
+    
     return filename
+
 
 
 # ============================================================
@@ -1642,7 +1602,7 @@ if __name__ == "__main__":
 
     print()
     print("=" * 60)
-    print("🚀 ARTICULATE AI")
+    print("--- ARTICULATE AI ---")
     print("=" * 60)
     print()
     print("Open:")
