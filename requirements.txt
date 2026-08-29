@@ -1,0 +1,7 @@
+numpy
+ollama
+sounddevice
+scipy
+faster-whisper
+fastapi
+uvicorn
