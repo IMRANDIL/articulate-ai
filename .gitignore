@@ -12,6 +12,10 @@ ENV/
 articulate_audio/
 *.wav
 
+# Model files
+*.onnx
+*.onnx.json
+
 # OS files
 .DS_Store
 Thumbs.db
