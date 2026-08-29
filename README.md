@@ -8,14 +8,15 @@ Articulate AI implements a fully local **Voice-to-Voice (V2V) loop**. It capture
 ### 🧠 Backend Architecture
 The backend is a **FastAPI** server that manages three specialized AI pipelines:
 1. **Audio Capture $\rightarrow$ STT**:
-   - Captures audio at **44.1kHz** $\rightarrow$ Resamples to **16kHz**.
-   - Uses **`faster-whisper` (Medium)** for high-accuracy, local speech-to-text transcription.
+   - Captures audio at **44.1kHz**.
+   - Uses **`faster-whisper` (Small/Medium)** for high-accuracy, local speech-to-text transcription.
+   - Implements a "Raw Mode" pipeline to prevent audio corruption and minimize hallucinations.
 2. **Cognition (LLM)**:
-   - Uses **`Ollama` (`phi3`)** as the articulation coach.
+   - Uses **`Ollama` (`gemma4:e4b`)** as the articulation coach.
    - Maintains a short-term conversation memory to keep the context of the practice session.
 3. **TTS $\rightarrow$ Audio Output**:
-   - Uses **`Piper`** (ONNX runtime) for ultra-fast, low-latency local text-to-speech synthesis.
-   - Outputs high-quality `.wav` files played directly in the browser.
+   - Uses **`Piper`** (ONNX runtime) for ultra-fast, local text-to-speech synthesis.
+   - Outputs fixed-name `.wav` files (`ai_response.wav`) to minimize disk clutter.
 
 ### 🎨 Frontend Architecture
 The frontend is a **single-file embedded HTML/JS** interface designed for zero-latency interaction:
@@ -27,7 +28,7 @@ The frontend is a **single-file embedded HTML/JS** interface designed for zero-l
 
 ### Prerequisites
 - **Python 3.12**
-- **Ollama**: Installed and running with `phi3` pulled.
+- **Ollama**: Installed and running with `gemma4:e4b` pulled.
 - **Piper**: Executable and model files (`.onnx` and `.json`) must be in the root directory.
 
 ### Quick Start
@@ -45,7 +46,7 @@ The frontend is a **single-file embedded HTML/JS** interface designed for zero-l
 4. **Access the UI**: Open `http://127.0.0.1:8000` in your browser.
 
 ## ⚙️ Configuration
-- **Microphone**: Uses system default device.
+- **Microphone**: Uses system default device. To avoid "dimming" or "vanishing" voice, it is recommended to disable "Audio Enhancements" in Windows Sound Settings.
 - **Audio Flow**: 
   - Root storage for audio: `articulate_audio/`
   - Only keeps the current `recording_16000.wav` and `ai_response.wav` to avoid disk clutter.
