@@ -24,8 +24,8 @@ import uvicorn
 # CONFIGURATION
 # ============================================================
 
-WHISPER_MODEL = "medium"
-OLLAMA_MODEL = "phi3"
+WHISPER_MODEL = "small"
+OLLAMA_MODEL = "gemma4:e4b"
 PIPER_MODEL = "en_US-lessac-medium.onnx"
 
 # Use None for default device to allow sounddevice to pick the system default
@@ -77,7 +77,7 @@ print()
 print("=" * 60)
 print("ARTICULATE AI")
 print("=" * 60)
-print("Loading Whisper medium...")
+print("Loading Whisper small...")
 
 whisper = WhisperModel(
     WHISPER_MODEL,
@@ -116,12 +116,18 @@ class MicrophoneRecorder:
             print("Microphone:", status)
 
         with self.lock:
-
             if self.recording:
-
+                # Convert to float32 if it was recorded as int16
+                # to keep the rest of the pipeline working
+                if indata.dtype == np.int16:
+                    processed_data = indata.astype(np.float32) / 32768.0
+                else:
+                    processed_data = indata
+                
                 self.frames.append(
-                    indata.copy()
+                    processed_data.copy()
                 )
+
 
     def start(self):
 
@@ -139,8 +145,8 @@ class MicrophoneRecorder:
                 samplerate=NATIVE_SAMPLE_RATE,
                 device=MICROPHONE_DEVICE,
                 channels=1,
-                dtype="float32",
-                blocksize=1024,
+                dtype="int16",
+                blocksize=2048,
                 callback=self.callback,
             )
 
@@ -218,24 +224,17 @@ conversation = []
 # ============================================================
 
 def transcribe_audio(audio):
-    # Just save the raw audio to check if it's working
+    # Save exactly what we recorded
     native_path = OUTPUT_DIR / "recording_44100.wav"
     audio_int16 = (audio * 32767).astype(np.int16)
     write(str(native_path), NATIVE_SAMPLE_RATE, audio_int16)
 
-    # SIMPLIFIED PIPELINE: Remove all complex filters
-    mono = audio[:, 0] if audio.ndim > 1 else audio
+    print("🧠 Whisper transcribing (Raw Mode)...")
     
-    # Basic Resample
-    resampled = resample_poly(mono, WHISPER_SAMPLE_RATE, NATIVE_SAMPLE_RATE)
-    resampled_int16 = (resampled * 32767).astype(np.int16)
-    
-    whisper_path = OUTPUT_DIR / "recording_16000.wav"
-    write(str(whisper_path), WHISPER_SAMPLE_RATE, resampled_int16)
-
-    print("🧠 Whisper transcribing...")
+    # Use the native path directly. 
+    # faster-whisper's transcribe method handles resampling internally.
     segments, info = whisper.transcribe(
-        str(whisper_path),
+        str(native_path),
         language="en",
         beam_size=1,
         temperature=0,
@@ -275,7 +274,7 @@ def ask_qwen(user_text):
         }
     )
 
-    print("🤖 Qwen thinking...")
+    print("🤖 AI thinking...")
 
     response = ollama.chat(
         model=OLLAMA_MODEL,
